@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 Pixel Agents Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
+  #game-container { border: 3px solid #7c3aed; border-radius: 8px; box-shadow: 0 0 40px #7c3aed55; }
+  #ui-overlay { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
+  #chat-panel { background: #0f0f1a; border-top: 2px solid #7c3aed; padding: 12px 16px; display: none; max-height: 260px; }
+  #chat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  #agent-avatar { font-size: 24px; }
+  #agent-name { color: #e2e8f0; font-size: 14px; font-weight: bold; }
+  #close-chat { margin-left: auto; background: none; border: 1px solid #7c3aed; color: #7c3aed; padding: 2px 10px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  #chat-messages { color: #94a3b8; font-size: 12px; line-height: 1.5; max-height: 120px; overflow-y: auto; margin-bottom: 8px; white-space: pre-wrap; }
+  #chat-input-row { display: flex; gap: 8px; }
+  #chat-input { flex: 1; background: #1a1a2e; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; outline: none; }
+  #chat-input:focus { border-color: #7c3aed; }
+  #send-btn { background: #7c3aed; border: none; color: white; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  #send-btn:hover { background: #6d28d9; }
+  #api-bar { background: #0a0a14; border-top: 1px solid #1e1e3f; padding: 6px 16px; display: flex; gap: 8px; align-items: center; }
+  #api-input { flex: 1; background: #1a1a2e; border: 1px solid #334155; color: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 11px; }
+  #api-save { background: #059669; border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  #api-status { font-size: 11px; color: #64748b; }
+  #title-bar { background: #0a0a14; padding: 6px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1e1e3f; width: 100%; }
+  #title-text { color: #7c3aed; font-size: 13px; font-weight: bold; letter-spacing: 2px; }
+  #hint { color: #475569; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div id="title-bar">
+  <span id="title-text">🎮 PIXEL AGENTS STUDIO</span>
+  <span id="hint">Clique em um agente para conversar</span>
+</div>
+
+<div id="game-container"></div>
+
+<div id="ui-overlay">
+  <div id="chat-panel">
+    <div id="chat-header">
+      <span id="agent-avatar">🎨</span>
+      <span id="agent-name">Agente</span>
+      <button id="close-chat" onclick="closeChat()">✕ fechar</button>
+    </div>
+    <div id="chat-messages">Olá! Como posso ajudar?</div>
+    <div id="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Digite sua pergunta..." onkeydown="if(event.key==='Enter') sendMessage()">
+      <button id="send-btn" onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+  <div id="api-bar">
+    <span id="api-status">🔑 API Key:</span>
+    <input id="api-input" type="password" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
+    <button id="api-save" onclick="saveApiKey(document.getElementById('api-input').value)">Salvar</button>
+    <span id="api-status-msg" style="color:#64748b;font-size:11px;"></span>
+  </div>
+</div>
+
+<script>
+// ── Estado global ──────────────────────────────────────────
+let activeAgent = null;
+let chatHistories = {};
+let apiKey = localStorage.getItem('anthropic_api_key') || '';
+if (apiKey) document.getElementById('api-input').value = apiKey;
+
+const AGENTS = [
+  { id:'product_designer', name:'Product Designer', emoji:'🎨', color:0xc026d3, sColor:'#c026d3', x:120, y:160, system:'Você é um Product Designer Sênior. Especialista em design strategy, design systems e facilitação. Responda em português brasileiro de forma direta e estratégica.' },
+  { id:'ux_designer',      name:'UX Designer',      emoji:'🔍', color:0x2563eb, sColor:'#2563eb', x:280, y:160, system:'Você é um UX Designer Sênior. Especialista em jornadas, wireframes e usabilidade. Responda em português brasileiro.' },
+  { id:'ui_designer',      name:'UI Designer',      emoji:'🖌️', color:0x0891b2, sColor:'#0891b2', x:440, y:160, system:'Você é um UI Designer Sênior. Especialista em sistemas visuais, tokens e acessibilidade. Responda em português brasileiro.' },
+  { id:'ux_researcher',    name:'UX Researcher',    emoji:'🔬', color:0x059669, sColor:'#059669', x:600, y:160, system:'Você é um UX Researcher Sênior. Especialista em pesquisa qualitativa e quantitativa. Responda em português brasileiro.' },
+  { id:'ux_content',       name:'UX Content',       emoji:'✍️', color:0xd97706, sColor:'#d97706', x:120, y:310, system:'Você é um UX Content Strategist. Especialista em microcopy e voz e tom. Responda em português brasileiro.' },
+  { id:'data_engineer',    name:'Data Engineer',    emoji:'📊', color:0x0e7490, sColor:'#0e7490', x:280, y:310, system:'Você é um Engenheiro de Dados Sênior. Especialista em pipelines e data warehouses. Responda em português brasileiro.' },
+  { id:'fullstack',        name:'Full Stack',        emoji:'⚙️', color:0x6b7280, sColor:'#6b7280', x:440, y:310, system:'Você é um Engenheiro Full Stack Sênior. Especialista em arquitetura e APIs. Responda em português brasileiro.' },
+  { id:'frontend',         name:'Front-end',         emoji:'💻', color:0x3b82f6, sColor:'#3b82f6', x:600, y:310, system:'Você é um Engenheiro Front-end Sênior. Especialista em React e performance. Responda em português brasileiro.' },
+  { id:'qa',               name:'QA Sênior',         emoji:'🧪', color:0xdc2626, sColor:'#dc2626', x:120, y:460, system:'Você é um QA Sênior. Especialista em automação de testes e qualidade. Responda em português brasileiro.' },
+  { id:'analyst',          name:'Analista Produto',  emoji:'📈', color:0x7c3aed, sColor:'#7c3aed', x:280, y:460, system:'Você é um Analista de Produto Sênior. Especialista em métricas e analytics. Responda em português brasileiro.' },
+  { id:'cto',              name:'CTO',               emoji:'🏗️', color:0xf8fafc, sColor:'#94a3b8', x:440, y:460, system:'Você é um CTO. Especialista em visão técnica e liderança de engenharia. Responda em português brasileiro.' },
+  { id:'product_owner',    name:'Product Owner',     emoji:'📋', color:0x16a34a, sColor:'#16a34a', x:600, y:460, system:'Você é um Product Owner Sênior. Especialista em backlog e priorização ágil. Responda em português brasileiro.' },
+];
+
+function saveApiKey(val) {
+  apiKey = val.trim();
+  localStorage.setItem('anthropic_api_key', apiKey);
+  const st = document.getElementById('api-status-msg');
+  st.textContent = apiKey ? '✅ salva' : '';
+  st.style.color = '#059669';
+}
+
+function openChat(agent) {
+  activeAgent = agent;
+  document.getElementById('agent-avatar').textContent = agent.emoji;
+  document.getElementById('agent-name').textContent = agent.name;
+  document.getElementById('agent-name').style.color = agent.sColor;
+  document.getElementById('chat-panel').style.display = 'block';
+  const msgs = chatHistories[agent.id];
+  if (msgs && msgs.length > 0) {
+    renderMessages(agent.id);
+  } else {
+    document.getElementById('chat-messages').textContent = agent.emoji + ' Olá! Sou o ' + agent.name + '. Como posso ajudar?';
+  }
+  document.getElementById('chat-input').focus();
+}
+
+function closeChat() {
+  document.getElementById('chat-panel').style.display = 'none';
+  activeAgent = null;
+}
+
+function renderMessages(agentId) {
+  const msgs = chatHistories[agentId] || [];
+  const el = document.getElementById('chat-messages');
+  el.textContent = msgs.map(m => (m.role === 'user' ? '▶ Você: ' : (activeAgent ? activeAgent.emoji + ' ' + activeAgent.name + ': ' : '🤖 ')) + m.content).join('\n\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendMessage() {
+  if (!activeAgent) return;
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  if (!apiKey) {
+    document.getElementById('chat-messages').textContent = '❌ Configure sua Anthropic API Key no campo abaixo!';
+    return;
+  }
+
+  const agentId = activeAgent.id;
+  if (!chatHistories[agentId]) chatHistories[agentId] = [];
+  chatHistories[agentId].push({ role: 'user', content: text });
+  renderMessages(agentId);
+
+  const el = document.getElementById('chat-messages');
+  el.textContent += '\n\n⏳ ' + activeAgent.name + ' está pensando...';
+  el.scrollTop = el.scrollHeight;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 1024,
+        system: activeAgent.system,
+        messages: chatHistories[agentId].slice(-10),
+      }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      chatHistories[agentId].push({ role: 'assistant', content: '❌ Erro: ' + (err.error?.message || resp.status) });
+    } else {
+      const data = await resp.json();
+      chatHistories[agentId].push({ role: 'assistant', content: data.content[0].text });
+    }
+  } catch(e) {
+    chatHistories[agentId].push({ role: 'assistant', content: '❌ Erro de conexão: ' + e.message });
+  }
+
+  renderMessages(agentId);
+}
+
+// ── Phaser Game ────────────────────────────────────────────
+class OfficeScene extends Phaser.Scene {
+  constructor() { super('OfficeScene'); }
+
+  preload() {
+    // Gera tiles e sprites programaticamente via Graphics
+  }
+
+  createFloorTile(color1, color2, size) {
+    const g = this.make.graphics({ x:0, y:0, add:false });
+    g.fillStyle(color1); g.fillRect(0, 0, size, size);
+    g.fillStyle(color2, 0.3); g.fillRect(0, 0, size/2, size/2);
+    g.fillRect(size/2, size/2, size/2, size/2);
+    g.generateTexture('floor', size, size);
+    g.destroy();
+  }
+
+  createDeskSprite(color, size) {
+    const g = this.make.graphics({ x:0, y:0, add:false });
+    // Tampo da mesa
+    g.fillStyle(0x92400e); g.fillRect(0, 8, size, size*0.6);
+    g.fillStyle(0x78350f); g.fillRect(0, size*0.68, size, 4);
+    // Monitor
+    g.fillStyle(0x1e293b); g.fillRect(size*0.2, 0, size*0.6, size*0.45);
+    g.fillStyle(color, 0.8); g.fillRect(size*0.22, 2, size*0.56, size*0.38);
+    g.fillStyle(0x334155); g.fillRect(size*0.43, size*0.45, size*0.14, 8);
+    // Teclado
+    g.fillStyle(0x475569); g.fillRect(size*0.15, size*0.5, size*0.5, 8);
+    g.generateTexture('desk_' + color.toString(16), size, size);
+    g.destroy();
+  }
+
+  createAgentSprite(color, key) {
+    const g = this.make.graphics({ x:0, y:0, add:false });
+    const s = 24;
+    // Sombra
+    g.fillStyle(0x000000, 0.2); g.fillEllipse(s/2, s-3, s*0.7, 6);
+    // Pés
+    g.fillStyle(0x1e293b); g.fillRect(s*0.3, s-8, 5, 8); g.fillRect(s*0.55, s-8, 5, 8);
+    // Corpo
+    g.fillStyle(color); g.fillRect(s*0.2, s*0.42, s*0.6, s*0.42);
+    // Braços
+    g.fillStyle(color, 0.8); g.fillRect(s*0.05, s*0.44, s*0.15, s*0.28); g.fillRect(s*0.8, s*0.44, s*0.15, s*0.28);
+    // Pescoço
+    g.fillStyle(0xfed7aa); g.fillRect(s*0.38, s*0.3, s*0.24, s*0.14);
+    // Cabeça
+    g.fillStyle(0xfbbf24); g.fillEllipse(s/2, s*0.22, s*0.44, s*0.42);
+    // Cabelo
+    g.fillStyle(color); g.fillRect(s*0.26, s*0.06, s*0.48, s*0.12);
+    // Olhos
+    g.fillStyle(0x1e293b); g.fillRect(s*0.34, s*0.18, 3, 3); g.fillRect(s*0.56, s*0.18, 3, 3);
+    g.generateTexture(key, s, s);
+    g.destroy();
+  }
+
+  createWallDecor() {
+    // Prateleira
+    const g = this.make.graphics({ x:0, y:0, add:false });
+    g.fillStyle(0x78350f); g.fillRect(0, 20, 80, 8);
+    g.fillStyle(0x92400e); g.fillRect(0, 0, 12, 28); g.fillRect(68, 0, 12, 28);
+    // Livros
+    const bookColors = [0xdc2626, 0x2563eb, 0x059669, 0xd97706, 0x7c3aed];
+    bookColors.forEach((c, i) => { g.fillStyle(c); g.fillRect(14 + i*11, 4, 9, 16); });
+    g.generateTexture('shelf', 80, 28);
+    g.destroy();
+
+    // Planta
+    const pg = this.make.graphics({ x:0, y:0, add:false });
+    pg.fillStyle(0x92400e); pg.fillRect(6, 24, 12, 14);
+    pg.fillStyle(0x166534); pg.fillEllipse(12, 18, 20, 22);
+    pg.fillStyle(0x15803d); pg.fillEllipse(8, 12, 14, 16); pg.fillEllipse(16, 14, 12, 14);
+    pg.generateTexture('plant', 24, 38);
+    pg.destroy();
+
+    // Quadro na parede
+    const qg = this.make.graphics({ x:0, y:0, add:false });
+    qg.fillStyle(0x78350f); qg.fillRect(0, 0, 64, 44);
+    qg.fillStyle(0x1e3a5f); qg.fillRect(3, 3, 58, 38);
+    qg.fillStyle(0x3b82f6, 0.4); qg.fillRect(6, 6, 52, 32);
+    qg.fillStyle(0xfbbf24); qg.fillTriangle(16, 30, 32, 10, 48, 30);
+    qg.generateTexture('picture', 64, 44);
+    qg.destroy();
+  }
+
+  create() {
+    const W = this.scale.width;
+    const H = this.scale.height;
+
+    // ── Floor tiles ───────────────────────────────────────
+    this.createFloorTile(0x2d2d3f, 0x3d3d5f, 40);
+
+    for (let y = 0; y < H; y += 40)
+      for (let x = 0; x < W; x += 40)
+        this.add.image(x, y, 'floor').setOrigin(0,0).setAlpha(0.85);
+
+    // ── Wall (top strip) ──────────────────────────────────
+    const wallGfx = this.add.graphics();
+    wallGfx.fillStyle(0x1e1e30); wallGfx.fillRect(0, 0, W, 80);
+    wallGfx.fillStyle(0x16213e); wallGfx.fillRect(0, 75, W, 5);
+    wallGfx.fillStyle(0x0f3460, 0.5); wallGfx.fillRect(0, 0, W, 2);
+
+    // ── Decoração de parede ───────────────────────────────
+    this.createWallDecor();
+    [60, 200, 380, 540].forEach(x => this.add.image(x, 18, 'shelf').setOrigin(0,0));
+    [680, 750].forEach(x => this.add.image(x, 22, 'picture').setOrigin(0,0));
+    [160, 330, 500, 660].forEach(x => this.add.image(x, 78, 'plant').setOrigin(0.5, 1));
+
+    // ── Separador de sala ─────────────────────────────────
+    const divGfx = this.add.graphics();
+    divGfx.fillStyle(0x0f172a, 0.8);
+    divGfx.fillRect(W*0.63, 80, 6, H - 80);
+    divGfx.fillStyle(0x1e293b);
+    divGfx.fillRect(W*0.63 + 2, 80, 2, H - 80);
+
+    // ── Plantas de canto ─────────────────────────────────
+    [10, W - 30].forEach(x => this.add.image(x, H - 10, 'plant').setOrigin(0, 1).setScale(1.3));
+
+    // ── Mesas e Agentes ───────────────────────────────────
+    AGENTS.forEach((agent, idx) => {
+      const deskKey = 'desk_' + agent.color.toString(16);
+      this.createDeskSprite(agent.color, deskKey);
+
+      const deskW = 80, deskH = 56;
+      const deskX = agent.x - deskW/2;
+      const deskY = agent.y - deskH/2 + 10;
+
+      // Sombra da mesa
+      const shadowGfx = this.add.graphics();
+      shadowGfx.fillStyle(0x000000, 0.15);
+      shadowGfx.fillEllipse(agent.x, deskY + deskH + 4, deskW * 0.9, 10);
+
+      // Mesa
+      const desk = this.add.image(deskX, deskY, deskKey).setOrigin(0, 0);
+
+      // Sprite do agente
+      const agentKey = 'agent_' + agent.id;
+      this.createAgentSprite(agent.color, agentKey);
+      const sprite = this.add.image(agent.x, deskY - 10, agentKey).setOrigin(0.5, 1);
+
+      // Label
+      const label = this.add.text(agent.x, deskY + deskH + 8, agent.emoji + ' ' + agent.name, {
+        fontSize: '9px',
+        fontFamily: 'Courier New',
+        color: Phaser.Display.Color.IntegerToColor(agent.color).rgba,
+        stroke: '#000000',
+        strokeThickness: 3,
+        align: 'center',
+      }).setOrigin(0.5, 0);
+
+      // Zona interativa
+      const zone = this.add.zone(agent.x, agent.y, deskW + 10, deskH + 30)
+        .setInteractive({ useHandCursor: true });
+
+      // Highlight hover
+      const highlight = this.add.graphics();
+
+      zone.on('pointerover', () => {
+        highlight.clear();
+        highlight.lineStyle(2, agent.color, 0.8);
+        highlight.strokeRect(deskX - 2, deskY - 2, deskW + 4, deskH + 4);
+        sprite.setScale(1.12);
+        label.setStyle({ color: '#ffffff', stroke: Phaser.Display.Color.IntegerToColor(agent.color).rgba, strokeThickness: 2 });
+        this.input.setDefaultCursor('pointer');
+      });
+
+      zone.on('pointerout', () => {
+        highlight.clear();
+        sprite.setScale(1);
+        label.setStyle({ color: Phaser.Display.Color.IntegerToColor(agent.color).rgba, stroke: '#000000', strokeThickness: 3 });
+      });
+
+      zone.on('pointerdown', () => {
+        // Pulso de clique
+        this.tweens.add({ targets: sprite, scaleX: 0.9, scaleY: 0.9, duration: 80, yoyo: true });
+        openChat(agent);
+      });
+
+      // Animação idle (bobbing)
+      this.tweens.add({
+        targets: sprite,
+        y: sprite.y - 3,
+        duration: 800 + idx * 120,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    });
+
+    // ── Título no canto ───────────────────────────────────
+    this.add.text(W - 8, H - 8, '🎮 PIXEL AGENTS STUDIO', {
+      fontSize: '9px', fontFamily: 'Courier New',
+      color: '#475569', align: 'right',
+    }).setOrigin(1, 1);
+
+    // ── Relógio ───────────────────────────────────────────
+    const clockText = this.add.text(W - 10, 8, '', {
+      fontSize: '11px', fontFamily: 'Courier New',
+      color: '#64748b', stroke: '#000', strokeThickness: 2,
+    }).setOrigin(1, 0);
+
+    this.time.addEvent({
+      delay: 1000, loop: true, callback: () => {
+        const now = new Date();
+        clockText.setText(now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'));
+      },
+    });
+  }
+}
+
+const config = {
+  type: Phaser.AUTO,
+  width: 760,
+  height: 540,
+  parent: 'game-container',
+  backgroundColor: '#1a1a2e',
+  scene: OfficeScene,
+  pixelArt: true,
+  antialias: false,
+  roundPixels: true,
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>
