@@ -1,116 +1,108 @@
-# 🤖 Agent Studio
+# ◈ Agent Studio
 
-Framework multi-agente com **12 especialistas de produto e tecnologia**, powered by Anthropic API (Claude).
+> **Atlas** lidera. 12 especialistas executam. Nada vai para produção sem aprovação.
 
----
-
-## 🎮 Pixel Agents — Terminal Interativo
-
-> Converse com os 12 agentes em pixel art direto no seu terminal!
-
-```
-╔══════════════════════════════════════════════════════════╗
-║            🎮 PIXEL AGENTS STUDIO 🎮                    ║
-║       12 Especialistas em Arte Pixel no Terminal         ║
-╚══════════════════════════════════════════════════════════╝
-
-  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-  │🎨 DESIGN    │ │🔍 UX        │ │🖌️ UI        │ │🔬 RESEARCH  │
-  │  ░▓▓▓░     │ │  ░▓▓▓░     │ │  ░▓▓▓░     │ │  ░▓▓▓░     │
-  │ ▓█████▓    │ │ ▓█████▓    │ │ ▓█████▓    │ │ ▓█████▓    │
-  │  ░███░     │ │  ░███░     │ │  ░███░     │ │  ░███░     │
-  │▶ FALANDO   │ │  aguard.   │ │  aguard.   │ │  aguard.   │
-  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
-```
-
-### ⚡ Como rodar o Pixel Agents (terminal local)
-
-```bash
-# 1. Clone o repositório
-git clone https://github.com/menezscri/agentes-studio.git
-cd agentes-studio
-
-# 2. Instale as dependências Python
-pip install -r requirements.txt
-
-# 3. Configure sua API key
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# 4. Rode!
-python pixel_agents.py
-```
-
-### 🕹️ Comandos no terminal
-
-| Comando | O que faz |
-|---------|-----------|
-| `1` a `12` | Seleciona o agente |
-| `ask <pergunta>` | Pergunta ao agente ativo |
-| `<número> <mensagem>` | Seleciona e pergunta em um comando (ex: `3 como criar um sistema de cores?`) |
-| `clear` | Limpa o histórico do agente ativo |
-| `q` | Sai |
-
-> **Onde rodar?** No seu terminal local (Mac, Linux ou Windows com WSL).
-> O GitHub Actions **não** suporta interfaces interativas — você precisa rodar localmente.
+![Claude API](https://img.shields.io/badge/Claude-Sonnet_4-blueviolet?style=flat-square)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python)
 
 ---
 
-## 🌐 Agent Studio — Interface Web (React)
+## 🧠 O Time — 13 Agentes com Nome
 
-Prefere uma interface visual no browser? O Agent Studio React também está neste repositório.
+| # | Nome | Papel | Especialidade |
+|---|------|-------|---------------|
+| 0 | **Atlas** | 🧠 Orquestrador | Analisa · Delega · Aprova para produção |
+| 1 | **Lara** | 🎨 Product Designer Sênior | Strategy · Design Systems · Mentoria |
+| 2 | **Marco** | 🔍 UX Designer Sênior | Flows · IA · Wireframes · Usabilidade |
+| 3 | **Nina** | 🖌️ UI Designer Sênior | Visual · Tokens · Componentes · a11y |
+| 4 | **Sofia** | 🔬 UX Researcher Sênior | Qualitativo · Quantitativo · Síntese |
+| 5 | **Theo** | ✍️ UX Content Strategist | Microcopy · Voice & Tone · Copy |
+| 6 | **Kai** | 📊 Engenheiro de Dados Sênior | Pipelines · dbt · Data Warehouse |
+| 7 | **Rafa** | ⚙️ Full Stack / Back-end Sênior | Arquitetura · APIs · Banco de Dados |
+| 8 | **Zoe** | 💻 Front-end Sênior | React · TypeScript · Performance |
+| 9 | **Alex** | 🧪 QA Sênior | Testing Strategy · Automação · BDD |
+| 10 | **Leo** | 📈 Analista de Produto Sênior | Métricas · Analytics · A/B Testing |
+| 11 | **Max** | 🏗️ CTO | Tech Vision · Arquitetura · Cultura |
+| 12 | **Bia** | 📋 Product Owner Sênior | Backlog · Priorização · Stakeholders |
 
-### Como rodar o Web
+---
 
+## ✨ Features
+
+### Core
+- **Atlas como orquestrador** — analisa qualquer tarefa, decompõe, delega aos especialistas certos e controla o gate de aprovação para produção
+- **Personagens com pixel art único** por agente — cada um tem seu visual no terminal
+- **Animação por estado** — personagens animam quando pensando, respondendo ou aguardando
+
+### Task Management
+- **Task Board (Kanban)** — Pendente / Em progresso / Em revisão / Aprovado / Bloqueado
+- **Gate de produção** — Atlas revisa todos os entregáveis antes de aprovar para produção
+- **Aprovação explícita** — `approve <N>` no terminal / botão na interface web
+- **Decomposição automática** — Atlas extrai subtarefas e distribui pelo time
+
+### Interface
+- **Speech bubbles** — indica quando agente está aguardando aprovação ou trabalhando
+- **Office view** — visão do escritório com todos os 13 personagens e status em tempo real
+- **Notificações** — toast quando agente responde
+- **Histórico persistente** — estado de tasks salvo em `~/.agent_studio_state.json`
+
+### Checkout Builder (caso de uso)
+Exemplo de tarefa para o Atlas:
+```
+task Preciso construir um checkout builder com drag-drop
+```
+Atlas cria automaticamente o plano com fases paralelas, atribui para Lara, Marco, Nina, Zoe, Rafa, Alex, Leo e Bia — com gate de aprovação antes de qualquer push para produção.
+
+---
+
+## 🚀 Como rodar
+
+### Web (React)
 ```bash
 npm install
 cp .env.example .env
 # Adicione: VITE_ANTHROPIC_API_KEY=sk-ant-...
 npm run dev
+# → http://localhost:3000
+```
+
+### Terminal (Python)
+```bash
+pip install anthropic rich
+export ANTHROPIC_API_KEY=sk-ant-...
+python pixel_agents.py
 ```
 
 ---
 
-## 👥 Os 12 Agentes
+## 🎮 Comandos no Terminal
 
-| # | Agente | Pixel | Especialidade |
-|---|--------|-------|--------------|
-| 1 | 🎨 Product Designer Sênior | magenta | Estratégia de design, design systems, mentoria |
-| 2 | 🔍 UX Designer | azul | Jornadas, arquitetura de informação, usabilidade |
-| 3 | 🖌️ UI Designer | ciano | Design visual, tipografia, sistemas de componentes |
-| 4 | 🔬 UX Researcher | verde | Research qualitativo e quantitativo, síntese |
-| 5 | ✍️ UX Content | amarelo | Microcopy, voz e tom, conteúdo estratégico |
-| 6 | 📊 Engenheiro de Dados | ciano escuro | Pipelines, data warehouse, analytics |
-| 7 | ⚙️ Full Stack / Back-end | cinza | Arquitetura, APIs, sistemas distribuídos |
-| 8 | 💻 Front-end Sênior | azul escuro | React, performance, acessibilidade |
-| 9 | 🧪 QA Sênior | vermelho | Estratégia de testes, automação, qualidade |
-| 10 | 📈 Analista de Produto | roxo | Métricas, analytics, decisões baseadas em dados |
-| 11 | 🏗️ CTO | branco | Visão técnica, arquitetura, liderança |
-| 12 | 📋 Product Owner Sênior | verde escuro | Backlog, priorização, frameworks ágeis |
+| Comando | Ação |
+|---------|------|
+| `0` | Seleciona Atlas (orquestrador) |
+| `1-12` | Seleciona especialista |
+| `task <descrição>` | Atlas analisa e cria plano de execução |
+| `<N> <mensagem>` | Ex: `8 implementa drag-drop com dnd-kit` |
+| `tasks` | Lista todas as tasks com status |
+| `approve <N>` | Aprova task N para produção |
+| `clear` | Limpa histórico do agente ativo |
+| `q` | Sair |
 
 ---
 
-## 🏗️ Estrutura do projeto
+## ⚠️ Segurança
 
-```
-agentes-studio/
-├── pixel_agents.py       # 🎮 Terminal interativo com pixel art
-├── requirements.txt      # Dependências Python
-├── src/
-│   ├── AgentStudio.jsx  # Interface React web
-│   ├── main.jsx
-│   └── index.css
-├── .env.example
-├── index.html
-├── package.json
-└── vite.config.js
-```
-
-## 🛠️ Tech Stack
-
-**Terminal (Python):** `anthropic` + `rich` + `blessed`
-
-**Web (React):** `React 18` + `Vite` + `Anthropic SDK` + `Lucide React`
+A API key fica no `.env` local. Para deploy compartilhado, use um backend intermediário (Next.js API Route ou Edge Function) que nunca exponha a key no client.
 
 ---
 
-Feito com ❤️ e Claude API
+## 🛠️ Stack
+
+**Terminal:** Python 3.10+ · anthropic · rich
+
+**Web:** React 18 · Vite 6 · TypeScript · Anthropic API
+
+---
+
+MIT License

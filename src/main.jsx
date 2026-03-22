@@ -1,10 +1,9 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import AgentStudio from "./AgentStudio.jsx";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import AgentStudio from "./AgentStudio";
 
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
     <AgentStudio />
-  </StrictMode>
+  </React.StrictMode>
 );
