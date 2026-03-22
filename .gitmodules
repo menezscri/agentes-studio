@@ -1,0 +1,4 @@
+[submodule "pixel-agents"]
+	path = pixel-agents
+	url = https://github.com/menezscri/pixel-agents.git
+	branch = main
